@@ -1,6 +1,7 @@
 package com.dnd.dicelobby.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,9 +14,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,22 +28,19 @@ import com.dnd.dicelobby.ui.components.DiceAnimationOverlay
 import com.dnd.dicelobby.ui.components.DiceSelector
 import com.dnd.dicelobby.ui.components.PlayerList
 import com.dnd.dicelobby.ui.components.RollLogList
-import com.dnd.dicelobby.ui.theme.AccentCrimson
-import com.dnd.dicelobby.ui.theme.AccentGold
+import com.dnd.dicelobby.ui.theme.*
 import com.dnd.dicelobby.ui.viewmodels.DiceViewModel
 import com.dnd.dicelobby.ui.viewmodels.LobbyViewModel
 
 /**
- * Main game screen — layout:
+ * Main game screen — Baldur's Gate 3 styled layout:
  *  ┌─────────────────────┐
- *  │   Players strip     │  (PlayerList)
- *  ├─────────────────────┤
- *  │   Roll log          │  (RollLogList — takes most of the space)
- *  ├─────────────────────┤
- *  │   Dice controls     │  (DiceSelector + count + modifier + Roll button)
+ *  │   Header + Players  │
+ *  ├── ◆ ─────────────── │  (ornate gold divider)
+ *  │   Roll log          │  (combat log — takes most of the space)
+ *  ├── ◆ ─────────────── │  (ornate gold divider)
+ *  │   Dice controls     │  (panel with BG3 styling)
  *  └─────────────────────┘
- *
- * When [DiceViewModel.showAnimation] is true, [DiceAnimationOverlay] covers the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +66,6 @@ fun DiceScreen(
     var showClearDialog   by remember { mutableStateOf(false) }
     var modifierText      by remember { mutableStateOf("") }
 
-    // Wire physics settled callback → lobby roll request
     LaunchedEffect(Unit) {
         diceViewModel.onRollReady = { formula, hidden ->
             lobbyViewModel.requestRoll(formula, hidden)
@@ -81,21 +81,40 @@ fun DiceScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = BG3Background,
         topBar = {
             TopAppBar(
-                title = { Text("Roll Dice", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text  = "DICE CHAMBER",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = BG3Gold
+                    )
+                },
                 actions = {
                     IconButton(onClick = { showClearDialog = true }) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Clear history")
+                        Icon(
+                            Icons.Default.DeleteOutline,
+                            contentDescription = "Clear history",
+                            tint = BG3CreamMuted
+                        )
                     }
                     IconButton(onClick = onLeave) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Leave")
+                        Icon(
+                            Icons.Default.ExitToApp,
+                            contentDescription = "Leave",
+                            tint = BG3CreamMuted
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BG3Surface,
+                    titleContentColor = BG3Gold
+                )
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().background(BG3Background)) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -105,10 +124,12 @@ fun DiceScreen(
                 PlayerList(
                     players       = players,
                     localPlayerId = localPlayer?.id ?: "",
-                    modifier      = Modifier.fillMaxWidth()
+                    modifier      = Modifier
+                        .fillMaxWidth()
+                        .background(BG3Surface)
                 )
 
-                HorizontalDivider()
+                OrnateDivider()
 
                 // ── Roll log ────────────────────────────────────────────────
                 RollLogList(
@@ -120,7 +141,7 @@ fun DiceScreen(
                         .fillMaxWidth()
                 )
 
-                HorizontalDivider()
+                OrnateDivider()
 
                 // ── Dice controls ───────────────────────────────────────────
                 DiceControls(
@@ -144,32 +165,76 @@ fun DiceScreen(
                 )
             }
 
-            // ── Animation overlay (on top of everything) ──────────────────
+            // ── Animation overlay ──────────────────────────────────────────
             DiceAnimationOverlay(
                 visible      = showAnimation,
                 physicsWorld = diceViewModel.physicsWorld,
                 diceType     = selectedDice,
-                playerColor  = localPlayer?.color ?: "#E53935",
+                playerColor  = localPlayer?.color ?: "#C8A84B",
                 onSettled    = diceViewModel::onPhysicsSettled
             )
         }
     }
 
-    // Clear history confirmation dialog
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title  = { Text("Clear Roll History?") },
-            text   = { Text("This will remove all roll records from this device.") },
+            containerColor   = BG3SurfaceCard,
+            title  = {
+                Text(
+                    "Clear Roll History?",
+                    color = BG3Gold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text   = {
+                Text(
+                    "This will remove all roll records from this device.",
+                    color = BG3CreamMuted
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     lobbyViewModel.clearHistory()
                     showClearDialog = false
-                }) { Text("Clear", color = MaterialTheme.colorScheme.error) }
+                }) {
+                    Text("CLEAR", color = BG3RedBright, letterSpacing = 1.sp)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text("CANCEL", color = BG3CreamMuted, letterSpacing = 1.sp)
+                }
             }
+        )
+    }
+}
+
+/** Gold ornate divider — a thin line with a diamond accent in the center. */
+@Composable
+private fun OrnateDivider(modifier: Modifier = Modifier) {
+    Row(
+        modifier          = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(
+            modifier  = Modifier.weight(1f),
+            color     = BG3GoldBorder,
+            thickness = 1.dp
+        )
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .size(7.dp)
+                .graphicsLayer { rotationZ = 45f }
+                .background(BG3GoldBorder)
+        )
+        HorizontalDivider(
+            modifier  = Modifier.weight(1f),
+            color     = BG3GoldBorder,
+            thickness = 1.dp
         )
     }
 }
@@ -193,10 +258,11 @@ private fun DiceControls(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .background(BG3Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Quick die picker
+        // Die picker
         DiceSelector(
             selectedType   = selectedDice,
             onTypeSelected = onDiceSelect,
@@ -205,100 +271,166 @@ private fun DiceControls(
 
         // Count + Modifier row
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment     = Alignment.CenterVertically
         ) {
             // Dice count stepper
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(0.5f)
+                modifier          = Modifier.weight(0.55f)
             ) {
-                OutlinedButton(
+                BG3IconButton(
                     onClick  = { onCountChange(diceCount - 1) },
                     enabled  = diceCount > 1,
-                    modifier = Modifier.size(36.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) { Text("−") }
-
-                Text(
-                    text     = "${diceCount}",
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    label    = "−"
                 )
-
-                OutlinedButton(
+                Text(
+                    text       = "$diceCount",
+                    modifier   = Modifier.padding(horizontal = 10.dp),
+                    fontWeight = FontWeight.Bold,
+                    fontSize   = 20.sp,
+                    color      = BG3Cream
+                )
+                BG3IconButton(
                     onClick  = { onCountChange(diceCount + 1) },
                     enabled  = diceCount < 20,
-                    modifier = Modifier.size(36.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) { Text("+") }
-
-                Spacer(Modifier.width(4.dp))
-                Text(selectedDice.label, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    label    = "+"
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text  = selectedDice.label.uppercase(),
+                    color = BG3Gold,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    letterSpacing = 1.sp
+                )
             }
 
             // Modifier input
             OutlinedTextField(
                 value         = modifierText,
                 onValueChange = onModChange,
-                label         = { Text("±Mod") },
+                label         = { Text("± MOD", fontSize = 11.sp, letterSpacing = 0.5.sp) },
                 singleLine    = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                modifier = Modifier.weight(0.5f)
+                modifier = Modifier.weight(0.45f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor   = BG3Gold,
+                    focusedLabelColor    = BG3Gold,
+                    cursorColor          = BG3Gold,
+                    unfocusedBorderColor = BG3GoldBorder,
+                    unfocusedLabelColor  = BG3CreamMuted,
+                    focusedTextColor     = BG3Cream,
+                    unfocusedTextColor   = BG3Cream
+                ),
+                shape = RoundedCornerShape(4.dp)
             )
         }
 
-        // Custom formula field (optional override)
+        // Custom formula
         OutlinedTextField(
             value         = customFormula,
             onValueChange = onFormulaChange,
-            label         = { Text("Custom formula (e.g. 4d6kh3)") },
+            label         = { Text("Custom formula  e.g. 4d6kh3", fontSize = 11.sp) },
             singleLine    = true,
-            modifier      = Modifier.fillMaxWidth()
+            modifier      = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor   = BG3Gold,
+                focusedLabelColor    = BG3Gold,
+                cursorColor          = BG3Gold,
+                unfocusedBorderColor = BG3GoldBorder,
+                unfocusedLabelColor  = BG3CreamMuted,
+                focusedTextColor     = BG3Cream,
+                unfocusedTextColor   = BG3Cream
+            ),
+            shape = RoundedCornerShape(4.dp)
         )
 
-        // Hidden roll toggle (DM only)
+        // Hidden roll (DM only)
         if (isHost) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier          = Modifier.fillMaxWidth()
             ) {
                 Switch(
                     checked         = hiddenRoll,
-                    onCheckedChange = onHiddenToggle
+                    onCheckedChange = onHiddenToggle,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor  = BG3Cream,
+                        checkedTrackColor  = BG3Red,
+                        uncheckedThumbColor = BG3CreamMuted,
+                        uncheckedTrackColor = BG3GoldBorder.copy(alpha = 0.3f)
+                    )
                 )
                 Spacer(Modifier.width(10.dp))
-                Icon(Icons.Default.VisibilityOff, contentDescription = null,
-                     tint = if (hiddenRoll) AccentCrimson else Color.Gray)
+                Icon(
+                    Icons.Default.VisibilityOff,
+                    contentDescription = null,
+                    tint     = if (hiddenRoll) BG3RedBright else BG3GoldBorder,
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text  = "Hidden Roll (DM only)",
-                    color = if (hiddenRoll) AccentCrimson else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    text  = "HIDDEN ROLL  (DM ONLY)",
+                    color = if (hiddenRoll) BG3RedBright else BG3CreamMuted.copy(alpha = 0.6f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.8.sp
                 )
             }
         }
 
-        // Roll button
+        // Roll button — BG3 style: dark fill, gold border, uppercase text
+        val rollBtnBorder = if (hiddenRoll && isHost) BG3RedBright else BG3Gold
+        val rollBtnBg     = if (hiddenRoll && isHost) BG3Red       else BG3SurfaceCard
+
         Button(
             onClick  = onRoll,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
-            shape  = RoundedCornerShape(14.dp),
+                .height(54.dp)
+                .border(1.5.dp, rollBtnBorder, RoundedCornerShape(4.dp)),
+            shape  = RoundedCornerShape(4.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (hiddenRoll && isHost) AccentCrimson
-                                 else MaterialTheme.colorScheme.primary
+                containerColor = rollBtnBg,
+                contentColor   = rollBtnBorder
             )
         ) {
-            Icon(Icons.Default.Casino, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
+            Icon(Icons.Default.Casino, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
             Text(
-                text       = if (hiddenRoll && isHost) "Roll (Hidden)" else "Roll!",
-                fontWeight = FontWeight.Bold,
-                fontSize   = 18.sp
+                text          = if (hiddenRoll && isHost) "ROLL  (HIDDEN)" else "ROLL THE DICE",
+                fontWeight    = FontWeight.Bold,
+                fontSize      = 16.sp,
+                letterSpacing = 2.sp,
+                textAlign     = TextAlign.Center
             )
+        }
+    }
+}
+
+/** Small square button matching BG3's minimal stepper style. */
+@Composable
+private fun BG3IconButton(onClick: () -> Unit, enabled: Boolean, label: String) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .border(1.dp, if (enabled) BG3GoldBorder else BG3GoldBorder.copy(alpha = 0.2f), RoundedCornerShape(3.dp))
+            .background(BG3SurfaceCard, RoundedCornerShape(3.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        TextButton(
+            onClick  = onClick,
+            enabled  = enabled,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(0.dp),
+            colors   = ButtonDefaults.textButtonColors(
+                contentColor         = BG3Gold,
+                disabledContentColor = BG3GoldBorder.copy(alpha = 0.3f)
+            )
+        ) {
+            Text(label, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
     }
 }

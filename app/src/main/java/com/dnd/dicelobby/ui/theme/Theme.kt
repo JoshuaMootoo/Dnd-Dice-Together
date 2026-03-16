@@ -11,17 +11,21 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Dark-first theme — the app is designed primarily for dark mode
+// Dark-first theme — BG3 warm dark palette
 private val DarkColorScheme = darkColorScheme(
-    primary          = Purple80,
-    secondary        = PurpleGrey80,
-    tertiary         = Pink80,
-    background       = DarkBackground,
-    surface          = SurfaceVariant,
-    onPrimary        = DarkBackground,
-    onSecondary      = DarkBackground,
-    onBackground     = TextPrimary,
-    onSurface        = TextPrimary
+    primary          = BG3Gold,
+    secondary        = BG3GoldBright,
+    tertiary         = BG3Red,
+    background       = BG3Background,
+    surface          = BG3Surface,
+    surfaceVariant   = BG3SurfaceCard,
+    onPrimary        = BG3Background,
+    onSecondary      = BG3Background,
+    onBackground     = BG3Cream,
+    onSurface        = BG3Cream,
+    onSurfaceVariant = BG3CreamMuted,
+    error            = BG3RedBright,
+    onError          = BG3Cream
 )
 
 private val LightColorScheme = lightColorScheme(

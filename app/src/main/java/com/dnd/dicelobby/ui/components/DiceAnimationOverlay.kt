@@ -18,6 +18,8 @@ import com.dnd.dicelobby.dice.DiceType
 import com.dnd.dicelobby.physics.PhysicsWorld
 import com.dnd.dicelobby.rendering.DiceGLView
 import com.dnd.dicelobby.rendering.DiceRenderer
+import com.dnd.dicelobby.ui.theme.BG3Gold
+import com.dnd.dicelobby.ui.theme.BG3GoldBorder
 
 /**
  * Full-screen overlay that displays the OpenGL dice animation.
@@ -72,15 +74,24 @@ fun DiceAnimationOverlay(
                 }
             )
 
-            // "Rolling…" hint at the bottom of the overlay
-            Text(
-                text  = "Rolling…",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
+            // BG3-style "THE FATES DECIDE" text at the bottom of the overlay
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 48.dp)
-            )
+            ) {
+                Text(
+                    text  = "THE FATES DECIDE",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = BG3Gold
+                )
+                Text(
+                    text  = "Rolling…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BG3GoldBorder
+                )
+            }
         }
     }
 }
