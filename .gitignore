@@ -1,0 +1,23 @@
+# Gradle cache and build outputs
+.gradle/
+build/
+app/build/
+
+# Local Android SDK properties (machine-specific)
+local.properties
+
+# IntelliJ / Android Studio IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Kotlin compiler caches
+**/.kotlin/
+
+# ProGuard mapping (generated at build time)
+app/proguard-mapping.txt
