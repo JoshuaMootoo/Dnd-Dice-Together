@@ -18,10 +18,24 @@ data class Player(
     val isDM: Boolean = false,
     val isConnected: Boolean = true,
     val color: String = "#E53935",
+    // Basic Info
+    val characterName: String = "",
     val race: String = "",
     val subrace: String = "",
     val characterClass: String = "",
     val subclass: String = "",
+    val background: String = "",
+    val alignment: String = "",
+    val level: Int = 1,
+    val xp: Int = 0,
+    // Ability Scores
+    val strScore: Int = 10,
+    val dexScore: Int = 10,
+    val conScore: Int = 10,
+    val intScore: Int = 10,
+    val wisScore: Int = 10,
+    val chaScore: Int = 10,
+    // Equipment
     val startingArmor: String = "",
     val startingWeapon: String = "",
     val startingGear: List<String> = emptyList()

@@ -17,6 +17,7 @@ import com.dnd.dicelobby.ui.viewmodels.LobbyViewModel
 /** Named route strings used throughout the navigation graph. */
 object Routes {
     const val HOME               = "home"
+    const val CHARACTER_SHEET    = "character_sheet"
     const val CHARACTER_CREATION = "character_creation"
     const val CREATE_LOBBY       = "create_lobby"
     const val JOIN_LOBBY         = "join_lobby"
@@ -44,9 +45,16 @@ fun AppNavigation() {
         composable(Routes.HOME) {
             HomeScreen(
                 homeViewModel   = homeViewModel,
-                onChooseRace    = { navController.navigate(Routes.CHARACTER_CREATION) },
+                onChooseRace    = { navController.navigate(Routes.CHARACTER_SHEET) },
                 onCreateLobby   = { navController.navigate(Routes.CREATE_LOBBY) },
                 onJoinLobby     = { navController.navigate(Routes.JOIN_LOBBY) }
+            )
+        }
+
+        composable(Routes.CHARACTER_SHEET) {
+            CharacterSheetScreen(
+                homeViewModel = homeViewModel,
+                onBack        = { navController.popBackStack() }
             )
         }
 
