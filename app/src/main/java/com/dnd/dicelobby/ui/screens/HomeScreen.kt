@@ -34,10 +34,12 @@ fun HomeScreen(
     onCreateLobby: () -> Unit,
     onJoinLobby: () -> Unit
 ) {
-    val playerName    by homeViewModel.playerName.collectAsStateWithLifecycle()
-    val playerColor   by homeViewModel.playerColor.collectAsStateWithLifecycle()
-    val playerRace    by homeViewModel.playerRace.collectAsStateWithLifecycle()
-    val playerSubrace by homeViewModel.playerSubrace.collectAsStateWithLifecycle()
+    val playerName     by homeViewModel.playerName.collectAsStateWithLifecycle()
+    val playerColor    by homeViewModel.playerColor.collectAsStateWithLifecycle()
+    val playerRace     by homeViewModel.playerRace.collectAsStateWithLifecycle()
+    val playerSubrace  by homeViewModel.playerSubrace.collectAsStateWithLifecycle()
+    val playerClass    by homeViewModel.playerClass.collectAsStateWithLifecycle()
+    val playerSubclass by homeViewModel.playerSubclass.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { homeViewModel.ensurePlayerId() }
 
@@ -110,31 +112,43 @@ fun HomeScreen(
                 onColorSelected = homeViewModel::updateColor
             )
 
-            // Race selection row
+            // Character summary row (race + class)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text  = "Race",
+                        text  = "Character",
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 13.sp
                     )
-                    if (playerRace.isNotBlank()) {
-                        Text(
-                            text = buildString {
-                                append(playerRace)
-                                if (playerSubrace.isNotBlank()) append(" · $playerSubrace")
-                            },
-                            color      = AccentGold,
-                            fontSize   = 14.sp,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                        )
+                    if (playerRace.isNotBlank() || playerClass.isNotBlank()) {
+                        if (playerRace.isNotBlank()) {
+                            Text(
+                                text = buildString {
+                                    append(playerRace)
+                                    if (playerSubrace.isNotBlank()) append(" · $playerSubrace")
+                                },
+                                color      = AccentGold,
+                                fontSize   = 13.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                            )
+                        }
+                        if (playerClass.isNotBlank()) {
+                            Text(
+                                text = buildString {
+                                    append(playerClass)
+                                    if (playerSubclass.isNotBlank()) append(" · $playerSubclass")
+                                },
+                                color      = AccentGold.copy(alpha = 0.8f),
+                                fontSize   = 13.sp
+                            )
+                        }
                     } else {
                         Text(
-                            text     = "Not selected",
+                            text     = "Not set up",
                             color    = Color.White.copy(alpha = 0.4f),
                             fontSize = 13.sp
                         )
@@ -146,7 +160,7 @@ fun HomeScreen(
                     colors = OutlinedButtonDefaults.outlinedButtonColors(contentColor = AccentGold),
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, AccentGold)
                 ) {
-                    Text(if (playerRace.isBlank()) "Choose" else "Change", fontSize = 13.sp)
+                    Text(if (playerRace.isBlank() && playerClass.isBlank()) "Set Up" else "Edit", fontSize = 13.sp)
                 }
             }
 

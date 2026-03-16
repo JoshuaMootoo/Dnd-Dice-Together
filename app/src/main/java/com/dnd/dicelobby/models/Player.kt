@@ -19,5 +19,10 @@ data class Player(
     val isConnected: Boolean = true,
     val color: String = "#E53935",
     val race: String = "",
-    val subrace: String = ""
+    val subrace: String = "",
+    val characterClass: String = "",
+    val subclass: String = "",
+    val startingArmor: String = "",
+    val startingWeapon: String = "",
+    val startingGear: List<String> = emptyList()
 )
