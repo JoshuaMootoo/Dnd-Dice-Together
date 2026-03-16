@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.filled.SignalWifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -121,7 +121,7 @@ private fun PlayerChip(player: Player, isLocal: Boolean) {
         if (!player.isConnected) {
             Spacer(Modifier.width(4.dp))
             Icon(
-                Icons.Default.WifiOff,
+                Icons.Default.SignalWifiOff,
                 contentDescription = "Disconnected",
                 tint     = BG3GoldBorder.copy(alpha = 0.4f),
                 modifier = Modifier.size(12.dp)
