@@ -17,5 +17,7 @@ data class Player(
     val name: String,
     val isDM: Boolean = false,
     val isConnected: Boolean = true,
-    val color: String = "#E53935"
+    val color: String = "#E53935",
+    val race: String = "",
+    val subrace: String = ""
 )

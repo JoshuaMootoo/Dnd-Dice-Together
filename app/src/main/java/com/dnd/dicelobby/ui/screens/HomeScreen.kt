@@ -30,11 +30,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
+    onChooseRace: () -> Unit,
     onCreateLobby: () -> Unit,
     onJoinLobby: () -> Unit
 ) {
-    val playerName  by homeViewModel.playerName.collectAsStateWithLifecycle()
-    val playerColor by homeViewModel.playerColor.collectAsStateWithLifecycle()
+    val playerName    by homeViewModel.playerName.collectAsStateWithLifecycle()
+    val playerColor   by homeViewModel.playerColor.collectAsStateWithLifecycle()
+    val playerRace    by homeViewModel.playerRace.collectAsStateWithLifecycle()
+    val playerSubrace by homeViewModel.playerSubrace.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { homeViewModel.ensurePlayerId() }
 
@@ -106,6 +109,46 @@ fun HomeScreen(
                 selectedColor = playerColor,
                 onColorSelected = homeViewModel::updateColor
             )
+
+            // Race selection row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text  = "Race",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 13.sp
+                    )
+                    if (playerRace.isNotBlank()) {
+                        Text(
+                            text = buildString {
+                                append(playerRace)
+                                if (playerSubrace.isNotBlank()) append(" · $playerSubrace")
+                            },
+                            color      = AccentGold,
+                            fontSize   = 14.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                        )
+                    } else {
+                        Text(
+                            text     = "Not selected",
+                            color    = Color.White.copy(alpha = 0.4f),
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+                OutlinedButton(
+                    onClick = onChooseRace,
+                    shape  = RoundedCornerShape(10.dp),
+                    colors = OutlinedButtonDefaults.outlinedButtonColors(contentColor = AccentGold),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, AccentGold)
+                ) {
+                    Text(if (playerRace.isBlank()) "Choose" else "Change", fontSize = 13.sp)
+                }
+            }
 
             Spacer(Modifier.height(8.dp))
 

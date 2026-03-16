@@ -16,11 +16,12 @@ import com.dnd.dicelobby.ui.viewmodels.LobbyViewModel
 
 /** Named route strings used throughout the navigation graph. */
 object Routes {
-    const val HOME         = "home"
-    const val CREATE_LOBBY = "create_lobby"
-    const val JOIN_LOBBY   = "join_lobby"
-    const val LOBBY        = "lobby"
-    const val DICE         = "dice"
+    const val HOME               = "home"
+    const val CHARACTER_CREATION = "character_creation"
+    const val CREATE_LOBBY       = "create_lobby"
+    const val JOIN_LOBBY         = "join_lobby"
+    const val LOBBY              = "lobby"
+    const val DICE               = "dice"
 }
 
 /**
@@ -42,9 +43,17 @@ fun AppNavigation() {
 
         composable(Routes.HOME) {
             HomeScreen(
+                homeViewModel   = homeViewModel,
+                onChooseRace    = { navController.navigate(Routes.CHARACTER_CREATION) },
+                onCreateLobby   = { navController.navigate(Routes.CREATE_LOBBY) },
+                onJoinLobby     = { navController.navigate(Routes.JOIN_LOBBY) }
+            )
+        }
+
+        composable(Routes.CHARACTER_CREATION) {
+            CharacterCreationScreen(
                 homeViewModel = homeViewModel,
-                onCreateLobby = { navController.navigate(Routes.CREATE_LOBBY) },
-                onJoinLobby   = { navController.navigate(Routes.JOIN_LOBBY) }
+                onBack        = { navController.popBackStack() }
             )
         }
 
