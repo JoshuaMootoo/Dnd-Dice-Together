@@ -8,9 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -153,22 +150,23 @@ private fun RaceTab(
             SectionLabel("Choose Race")
         }
 
-        item {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 520.dp)
+        // Race grid — chunked into rows of 3 to avoid nested lazy layout issues
+        items(DND_RACES.chunked(3)) { rowRaces ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(DND_RACES) { race ->
-                    SelectableChip(
-                        label      = race.name,
-                        isSelected = race.name == selectedRace,
-                        onClick    = { onRaceSelected(race.name) }
-                    )
+                rowRaces.forEach { race ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        SelectableChip(
+                            label      = race.name,
+                            isSelected = race.name == selectedRace,
+                            onClick    = { onRaceSelected(race.name) }
+                        )
+                    }
                 }
+                // Fill remaining columns if row is short
+                repeat(3 - rowRaces.size) { Spacer(Modifier.weight(1f)) }
             }
         }
 
@@ -270,22 +268,22 @@ private fun ClassTab(
     ) {
         item { SectionLabel("Choose Class") }
 
-        item {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 240.dp)
+        // Class grid — chunked rows to avoid nested lazy layout
+        items(DND_CLASSES.chunked(3)) { rowClasses ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(DND_CLASSES) { cls ->
-                    SelectableChip(
-                        label      = cls.name,
-                        isSelected = cls.name == selectedClass,
-                        onClick    = { onClassSelected(cls.name) }
-                    )
+                rowClasses.forEach { cls ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        SelectableChip(
+                            label      = cls.name,
+                            isSelected = cls.name == selectedClass,
+                            onClick    = { onClassSelected(cls.name) }
+                        )
+                    }
                 }
+                repeat(3 - rowClasses.size) { Spacer(Modifier.weight(1f)) }
             }
         }
 
