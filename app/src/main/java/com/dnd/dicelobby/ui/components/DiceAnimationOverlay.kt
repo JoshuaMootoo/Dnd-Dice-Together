@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +44,14 @@ fun DiceAnimationOverlay(
     playerColor: String,
     onSettled: (List<Int>) -> Unit
 ) {
+    // Track the settled face values so we can display them as result numbers
+    var settledValues by remember { mutableStateOf<List<Int>?>(null) }
+
+    val wrappedOnSettled: (List<Int>) -> Unit = { values ->
+        settledValues = values
+        onSettled(values)
+    }
+
     AnimatedVisibility(
         visible = visible,
         enter   = fadeIn(),
@@ -68,13 +78,13 @@ fun DiceAnimationOverlay(
                         physicsWorld = physicsWorld,
                         diceType     = diceType,
                         playerColor  = colorInt,
-                        onSettled    = onSettled
+                        onSettled    = wrappedOnSettled
                     )
                     DiceGLView(context, renderer)
                 }
             )
 
-            // BG3-style "THE FATES DECIDE" text at the bottom of the overlay
+            // BG3-style text + result numbers at the bottom of the overlay
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -86,11 +96,38 @@ fun DiceAnimationOverlay(
                     style = MaterialTheme.typography.titleLarge,
                     color = BG3Gold
                 )
-                Text(
-                    text  = "Rolling…",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = BG3GoldBorder
-                )
+                val values = settledValues
+                if (values != null) {
+                    // Show each die result as a large number
+                    val total = values.sum()
+                    Text(
+                        text      = values.joinToString(" + "),
+                        fontSize  = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color     = BG3Gold
+                    )
+                    if (values.size > 1) {
+                        Text(
+                            text      = "= $total",
+                            fontSize  = 32.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color     = BG3Gold
+                        )
+                    } else {
+                        Text(
+                            text      = total.toString(),
+                            fontSize  = 48.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color     = BG3Gold
+                        )
+                    }
+                } else {
+                    Text(
+                        text  = "Rolling…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = BG3GoldBorder
+                    )
+                }
             }
         }
     }

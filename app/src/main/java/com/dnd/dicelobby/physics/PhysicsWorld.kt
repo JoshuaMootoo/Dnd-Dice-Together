@@ -72,7 +72,7 @@ class PhysicsWorld {
                 }
                 // Sliding friction on the XZ plane
                 body.applyLinearDamping(dt, body.friction * 2f)
-                body.applyAngularDamping(dt)
+                body.applyAngularDamping(dt, 4.0f)
             }
 
             // --- Wall collisions ---
@@ -170,9 +170,9 @@ class PhysicsWorld {
                 z = (random.nextFloat() - 0.5f) * 3f
             ),
             angularVelocity = Vector3(
-                x = (random.nextFloat() - 0.5f) * 20f,
-                y = (random.nextFloat() - 0.5f) * 20f,
-                z = (random.nextFloat() - 0.5f) * 20f
+                x = (random.nextFloat() - 0.5f) * 10f,
+                y = (random.nextFloat() - 0.5f) * 10f,
+                z = (random.nextFloat() - 0.5f) * 10f
             ),
             orientation = Quaternion.fromAxisAngle(
                 Vector3(random.nextFloat(), random.nextFloat(), random.nextFloat()).normalized(),

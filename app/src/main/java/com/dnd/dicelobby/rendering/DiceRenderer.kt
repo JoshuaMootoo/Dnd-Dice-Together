@@ -54,7 +54,9 @@ class DiceRenderer(
 
     // Timing
     private var lastFrameTime = System.nanoTime()
+    private var animationStartTime = System.nanoTime()
     private var settledNotified = false
+    private val MAX_ANIMATION_NS = 7_000_000_000L  // 7-second hard timeout
 
     // Player colour as normalised RGB
     private val colorR = Color.red(playerColor)   / 255f
@@ -81,8 +83,21 @@ class DiceRenderer(
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES20.glViewport(0, 0, width, height)
         val aspect = width.toFloat() / height
-        // Top-down orthographic projection — arena is 4 m wide
-        Matrix.orthoM(projMatrix, 0, -2f * aspect, 2f * aspect, -2f, 2f, 0.1f, 20f)
+        // Top-down orthographic projection — always fit the full 4 m arena plus padding.
+        // In portrait mode (aspect < 1) the arena half must stay at ±2.3 in X so dice
+        // near the walls are never clipped; Y expands proportionally.
+        val arenaHalf = 2.3f
+        if (aspect >= 1f) {
+            Matrix.orthoM(projMatrix, 0,
+                -arenaHalf * aspect, arenaHalf * aspect,
+                -arenaHalf, arenaHalf,
+                0.1f, 20f)
+        } else {
+            Matrix.orthoM(projMatrix, 0,
+                -arenaHalf, arenaHalf,
+                -arenaHalf / aspect, arenaHalf / aspect,
+                0.1f, 20f)
+        }
         // Camera directly above, looking down
         Matrix.setLookAtM(viewMatrix, 0,
             0f, 8f, 0f,   // eye
@@ -114,7 +129,8 @@ class DiceRenderer(
         physicsWorld.bodies.forEach { body -> drawBody(body) }
 
         // --- Settle callback ---
-        if (!settledNotified && physicsWorld.allSettled) {
+        val timedOut = (now - animationStartTime) >= MAX_ANIMATION_NS
+        if (!settledNotified && (physicsWorld.allSettled || timedOut)) {
             settledNotified = true
             val results = physicsWorld.bodies.map { body ->
                 physicsWorld.detectTopFaceValue(body, diceType)
