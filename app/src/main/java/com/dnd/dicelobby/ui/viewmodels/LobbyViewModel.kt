@@ -142,7 +142,9 @@ class LobbyViewModel(application: Application) : AndroidViewModel(application) {
                 server?.processRoll(pid, formula, hidden, faceValues)
             }
         } else {
-            client?.requestRoll(formula, hidden, faceValues)
+            viewModelScope.launch(Dispatchers.IO) {
+                client?.requestRoll(formula, hidden, faceValues)
+            }
         }
     }
 
