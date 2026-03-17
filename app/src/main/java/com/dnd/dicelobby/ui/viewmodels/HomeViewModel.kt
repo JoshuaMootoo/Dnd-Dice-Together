@@ -32,9 +32,11 @@ private val PLAYER_CON_KEY       = stringPreferencesKey("player_con")
 private val PLAYER_INT_KEY       = stringPreferencesKey("player_int")
 private val PLAYER_WIS_KEY       = stringPreferencesKey("player_wis")
 private val PLAYER_CHA_KEY       = stringPreferencesKey("player_cha")
-private val PLAYER_ARMOR_KEY     = stringPreferencesKey("player_armor")
-private val PLAYER_WEAPON_KEY    = stringPreferencesKey("player_weapon")
-private val PLAYER_GEAR_KEY      = stringPreferencesKey("player_gear") // comma-separated
+private val PLAYER_ARMOR_KEY      = stringPreferencesKey("player_armor")
+private val PLAYER_WEAPON_KEY     = stringPreferencesKey("player_weapon")
+private val PLAYER_GEAR_KEY       = stringPreferencesKey("player_gear") // comma-separated
+private val PLAYER_SKILL_PROF_KEY = stringPreferencesKey("player_skill_prof") // comma-separated skill names
+private val PLAYER_SKILL_EXP_KEY  = stringPreferencesKey("player_skill_exp")  // comma-separated skill names
 
 /**
  * ViewModel for the Home screen.
@@ -100,6 +102,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _startingGear = MutableStateFlow<List<String>>(emptyList())
     val startingGear: StateFlow<List<String>> = _startingGear.asStateFlow()
 
+    /** Skill names the player is proficient in (adds proficiency bonus to the check). */
+    private val _skillProficiencies = MutableStateFlow<Set<String>>(emptySet())
+    val skillProficiencies: StateFlow<Set<String>> = _skillProficiencies.asStateFlow()
+
+    /** Skill names the player has expertise in (doubles the proficiency bonus). Must also be proficient. */
+    private val _skillExpertise = MutableStateFlow<Set<String>>(emptySet())
+    val skillExpertise: StateFlow<Set<String>> = _skillExpertise.asStateFlow()
+
     init {
         viewModelScope.launch {
             getApplication<Application>().dataStore.data.collect { prefs ->
@@ -125,6 +135,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _startingWeapon.value = prefs[PLAYER_WEAPON_KEY]    ?: ""
                 val gear              = prefs[PLAYER_GEAR_KEY]      ?: ""
                 _startingGear.value   = if (gear.isBlank()) emptyList() else gear.split(",")
+                val profStr           = prefs[PLAYER_SKILL_PROF_KEY] ?: ""
+                _skillProficiencies.value = if (profStr.isBlank()) emptySet() else profStr.split(",").toSet()
+                val expStr            = prefs[PLAYER_SKILL_EXP_KEY]  ?: ""
+                _skillExpertise.value = if (expStr.isBlank()) emptySet() else expStr.split(",").toSet()
             }
         }
     }
@@ -273,6 +287,43 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             getApplication<Application>().dataStore.edit { prefs ->
                 prefs[PLAYER_GEAR_KEY] = current.joinToString(",")
+            }
+        }
+    }
+
+    /**
+     * Toggle proficiency for [skill].
+     * Removing proficiency also removes expertise for that skill.
+     */
+    fun toggleSkillProficiency(skill: String) {
+        val current = _skillProficiencies.value.toMutableSet()
+        if (skill in current) {
+            current.remove(skill)
+            _skillExpertise.value = _skillExpertise.value - skill
+        } else {
+            current.add(skill)
+        }
+        _skillProficiencies.value = current
+        val expSet = _skillExpertise.value
+        viewModelScope.launch {
+            getApplication<Application>().dataStore.edit { prefs ->
+                prefs[PLAYER_SKILL_PROF_KEY] = current.joinToString(",")
+                prefs[PLAYER_SKILL_EXP_KEY]  = expSet.joinToString(",")
+            }
+        }
+    }
+
+    /**
+     * Toggle expertise for [skill]. Requires the player to already be proficient.
+     */
+    fun toggleSkillExpertise(skill: String) {
+        if (skill !in _skillProficiencies.value) return
+        val current = _skillExpertise.value.toMutableSet()
+        if (skill in current) current.remove(skill) else current.add(skill)
+        _skillExpertise.value = current
+        viewModelScope.launch {
+            getApplication<Application>().dataStore.edit { prefs ->
+                prefs[PLAYER_SKILL_EXP_KEY] = current.joinToString(",")
             }
         }
     }

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,7 +48,8 @@ import com.dnd.dicelobby.ui.viewmodels.LobbyViewModel
 fun DiceScreen(
     lobbyViewModel: LobbyViewModel,
     diceViewModel: DiceViewModel,
-    onLeave: () -> Unit
+    onLeave: () -> Unit,
+    onOpenSheet: (() -> Unit)? = null
 ) {
     val players       by lobbyViewModel.players.collectAsStateWithLifecycle()
     val rolls         by lobbyViewModel.rolls.collectAsStateWithLifecycle()
@@ -96,6 +98,15 @@ fun DiceScreen(
                     )
                 },
                 actions = {
+                    if (onOpenSheet != null) {
+                        IconButton(onClick = onOpenSheet) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Character Sheet",
+                                tint = BG3Gold
+                            )
+                        }
+                    }
                     IconButton(onClick = { showClearDialog = true }) {
                         Icon(
                             Icons.Default.DeleteOutline,

@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.dnd.dicelobby.ui.screens.*
+import com.dnd.dicelobby.dice.DiceType
 import com.dnd.dicelobby.ui.viewmodels.DiceViewModel
 import com.dnd.dicelobby.ui.viewmodels.HomeViewModel
 import com.dnd.dicelobby.ui.viewmodels.LobbyViewModel
@@ -23,6 +24,7 @@ object Routes {
     const val JOIN_LOBBY         = "join_lobby"
     const val LOBBY              = "lobby"
     const val DICE               = "dice"
+    const val DICE_SHEET         = "dice_sheet"
 }
 
 /**
@@ -113,6 +115,24 @@ fun AppNavigation() {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
+                },
+                onOpenSheet = { navController.navigate(Routes.DICE_SHEET) }
+            )
+        }
+
+        // Character sheet opened from within the Dice screen — skills are tappable rolls
+        composable(Routes.DICE_SHEET) {
+            CharacterSheetScreen(
+                homeViewModel = homeViewModel,
+                onBack        = { navController.popBackStack() },
+                onSkillRoll   = { modifier, label ->
+                    // Pre-configure the dice VM then pop back so the overlay shows in DiceScreen
+                    diceViewModel.selectDice(DiceType.D20)
+                    diceViewModel.setDiceCount(1)
+                    diceViewModel.setModifier(modifier)
+                    diceViewModel.setCustomFormula("")
+                    navController.popBackStack()
+                    diceViewModel.startRoll()
                 }
             )
         }
