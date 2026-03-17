@@ -37,6 +37,8 @@ private val PLAYER_WEAPON_KEY     = stringPreferencesKey("player_weapon")
 private val PLAYER_GEAR_KEY       = stringPreferencesKey("player_gear") // comma-separated
 private val PLAYER_SKILL_PROF_KEY = stringPreferencesKey("player_skill_prof") // comma-separated skill names
 private val PLAYER_SKILL_EXP_KEY  = stringPreferencesKey("player_skill_exp")  // comma-separated skill names
+private val PLAYER_KNOWN_SPELLS_KEY = stringPreferencesKey("player_known_spells") // comma-separated spell names
+private val PLAYER_FEATS_KEY        = stringPreferencesKey("player_feats")        // comma-separated feat names
 
 /**
  * ViewModel for the Home screen.
@@ -110,6 +112,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _skillExpertise = MutableStateFlow<Set<String>>(emptySet())
     val skillExpertise: StateFlow<Set<String>> = _skillExpertise.asStateFlow()
 
+    /** Spell names the player has added to their character's spell list. */
+    private val _knownSpells = MutableStateFlow<Set<String>>(emptySet())
+    val knownSpells: StateFlow<Set<String>> = _knownSpells.asStateFlow()
+
+    /** Feat names the player has selected for their character. */
+    private val _selectedFeats = MutableStateFlow<Set<String>>(emptySet())
+    val selectedFeats: StateFlow<Set<String>> = _selectedFeats.asStateFlow()
+
     init {
         viewModelScope.launch {
             getApplication<Application>().dataStore.data.collect { prefs ->
@@ -139,6 +149,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _skillProficiencies.value = if (profStr.isBlank()) emptySet() else profStr.split(",").toSet()
                 val expStr            = prefs[PLAYER_SKILL_EXP_KEY]  ?: ""
                 _skillExpertise.value = if (expStr.isBlank()) emptySet() else expStr.split(",").toSet()
+                val spellStr          = prefs[PLAYER_KNOWN_SPELLS_KEY] ?: ""
+                _knownSpells.value    = if (spellStr.isBlank()) emptySet() else spellStr.split("|").toSet()
+                val featsStr          = prefs[PLAYER_FEATS_KEY] ?: ""
+                _selectedFeats.value  = if (featsStr.isBlank()) emptySet() else featsStr.split("|").toSet()
             }
         }
     }
@@ -287,6 +301,30 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             getApplication<Application>().dataStore.edit { prefs ->
                 prefs[PLAYER_GEAR_KEY] = current.joinToString(",")
+            }
+        }
+    }
+
+    /** Add or remove a spell from the character's known spells list. */
+    fun toggleKnownSpell(spellName: String) {
+        val current = _knownSpells.value.toMutableSet()
+        if (spellName in current) current.remove(spellName) else current.add(spellName)
+        _knownSpells.value = current
+        viewModelScope.launch {
+            getApplication<Application>().dataStore.edit { prefs ->
+                prefs[PLAYER_KNOWN_SPELLS_KEY] = current.joinToString("|")
+            }
+        }
+    }
+
+    /** Add or remove a feat from the character's selected feats. */
+    fun toggleFeat(featName: String) {
+        val current = _selectedFeats.value.toMutableSet()
+        if (featName in current) current.remove(featName) else current.add(featName)
+        _selectedFeats.value = current
+        viewModelScope.launch {
+            getApplication<Application>().dataStore.edit { prefs ->
+                prefs[PLAYER_FEATS_KEY] = current.joinToString("|")
             }
         }
     }

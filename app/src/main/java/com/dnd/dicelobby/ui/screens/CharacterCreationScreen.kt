@@ -46,9 +46,10 @@ fun CharacterCreationScreen(
     val selectedArmor    by homeViewModel.startingArmor.collectAsStateWithLifecycle()
     val selectedWeapon   by homeViewModel.startingWeapon.collectAsStateWithLifecycle()
     val selectedGear     by homeViewModel.startingGear.collectAsStateWithLifecycle()
+    val selectedFeats    by homeViewModel.selectedFeats.collectAsStateWithLifecycle()
 
     var tabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Race", "Class", "Equipment")
+    val tabs = listOf("Race", "Class", "Equipment", "Feats")
 
     Scaffold(
         topBar = {
@@ -118,6 +119,10 @@ fun CharacterCreationScreen(
                         onArmorSelected  = homeViewModel::updateArmor,
                         onWeaponSelected = homeViewModel::updateWeapon,
                         onGearToggled    = homeViewModel::toggleGearItem
+                    )
+                    3 -> FeatsTab(
+                        selectedFeats = selectedFeats,
+                        onFeatToggled = homeViewModel::toggleFeat
                     )
                 }
             }
@@ -425,3 +430,114 @@ private fun SelectableRow(label: String, isSelected: Boolean, onClick: () -> Uni
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feats Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun FeatsTab(
+    selectedFeats: Set<String>,
+    onFeatToggled: (String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filtered = remember(searchQuery) {
+        if (searchQuery.isBlank()) DND_FEATS
+        else DND_FEATS.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Search bar
+        OutlinedTextField(
+            value         = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder   = { Text("Search feats…", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp) },
+            singleLine    = true,
+            modifier      = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            shape  = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor      = AccentGold,
+                unfocusedBorderColor    = Color.White.copy(alpha = 0.2f),
+                focusedTextColor        = Color.White,
+                unfocusedTextColor      = Color.White,
+                cursorColor             = AccentGold,
+                focusedContainerColor   = SURFACE_COLOR,
+                unfocusedContainerColor = SURFACE_COLOR
+            )
+        )
+
+        Text(
+            "${selectedFeats.size} selected",
+            color    = AccentGold,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, bottom = 6.dp)
+        )
+
+        LazyColumn(
+            modifier       = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(filtered, key = { it.name }) { feat ->
+                FeatCard(
+                    feat       = feat,
+                    isSelected = feat.name in selectedFeats,
+                    onToggle   = { onFeatToggled(feat.name) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeatCard(feat: Feat, isSelected: Boolean, onClick: () -> Unit, onToggle: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Surface(
+        color  = if (isSelected) AccentCrimson.copy(alpha = 0.15f) else SURFACE_COLOR,
+        shape  = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, if (isSelected) AccentGold else Color.White.copy(alpha = 0.1f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(feat.name, color = if (isSelected) AccentGold else Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    if (feat.prerequisite.isNotBlank()) {
+                        Text("Requires: ${feat.prerequisite}", color = AccentCrimson.copy(alpha = 0.8f), fontSize = 11.sp)
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { expanded = !expanded }, contentPadding = PaddingValues(4.dp)) {
+                        Text(if (expanded) "Less" else "Info", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                    }
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onToggle() },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor   = AccentGold,
+                            checkmarkColor = Color.Black,
+                            uncheckedColor = Color.White.copy(alpha = 0.4f)
+                        )
+                    )
+                }
+            }
+            if (expanded) {
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                Spacer(Modifier.height(6.dp))
+                Text(feat.description, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+    }
+}
+
+// Overload used directly in FeatsTab
+@Composable
+private fun FeatCard(feat: Feat, isSelected: Boolean, onToggle: () -> Unit) =
+    FeatCard(feat = feat, isSelected = isSelected, onClick = {}, onToggle = onToggle)

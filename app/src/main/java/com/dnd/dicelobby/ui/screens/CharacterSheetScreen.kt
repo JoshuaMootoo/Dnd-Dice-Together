@@ -3,13 +3,18 @@ package com.dnd.dicelobby.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
@@ -27,6 +32,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dnd.dicelobby.models.DND_CLASSES
 import com.dnd.dicelobby.models.DND_RACES
+import com.dnd.dicelobby.models.DND_SPELLS
+import com.dnd.dicelobby.models.Spell
 import com.dnd.dicelobby.ui.theme.AccentCrimson
 import com.dnd.dicelobby.ui.theme.AccentGold
 import com.dnd.dicelobby.ui.viewmodels.HomeViewModel
@@ -132,10 +139,13 @@ fun CharacterSheetScreen(
     val cha           by homeViewModel.chaScore.collectAsStateWithLifecycle()
     val skillProf     by homeViewModel.skillProficiencies.collectAsStateWithLifecycle()
     val skillExp      by homeViewModel.skillExpertise.collectAsStateWithLifecycle()
+    val knownSpells   by homeViewModel.knownSpells.collectAsStateWithLifecycle()
 
     var basicExpanded  by remember { mutableStateOf(true) }
     var scoresExpanded by remember { mutableStateOf(true) }
     var skillsExpanded by remember { mutableStateOf(true) }
+    var spellsExpanded by remember { mutableStateOf(true) }
+    var showSpellCatalogue by remember { mutableStateOf(false) }
 
     // Build an ability-score lookup used by the skills section
     val abilityScores = mapOf(
@@ -289,6 +299,22 @@ fun CharacterSheetScreen(
                     }
                 }
 
+                // ── Spells ──────────────────────────────────────────────────
+                item {
+                    CollapsibleSection(
+                        title    = "Spells  (${knownSpells.size} known)",
+                        expanded = spellsExpanded,
+                        onToggle = { spellsExpanded = !spellsExpanded }
+                    ) {
+                        SpellsSection(
+                            knownSpells  = knownSpells,
+                            playerClass  = cls,
+                            onRemove     = homeViewModel::toggleKnownSpell,
+                            onBrowse     = { showSpellCatalogue = true }
+                        )
+                    }
+                }
+
                 // ── Skills & Proficiencies ───────────────────────────────────
                 item {
                     CollapsibleSection(
@@ -347,6 +373,16 @@ fun CharacterSheetScreen(
                 }
             }
         }
+    }
+
+    // Spell catalogue bottom sheet
+    if (showSpellCatalogue) {
+        SpellCatalogueSheet(
+            knownSpells = knownSpells,
+            playerClass = cls,
+            onToggle    = homeViewModel::toggleKnownSpell,
+            onDismiss   = { showSpellCatalogue = false }
+        )
     }
 }
 
@@ -441,6 +477,327 @@ private fun ProfDot(filled: Boolean, color: Color) {
             .background(if (filled) color else Color.Transparent)
             .border(1.5.dp, color, CircleShape)
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Spells composables
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val SPELL_LEVEL_LABELS = mapOf(
+    0 to "Cantrips", 1 to "1st Level", 2 to "2nd Level", 3 to "3rd Level",
+    4 to "4th Level", 5 to "5th Level", 6 to "6th Level", 7 to "7th Level",
+    8 to "8th Level", 9 to "9th Level"
+)
+
+private val SCHOOL_COLORS = mapOf(
+    "Abjuration"    to Color(0xFF4A90D9),
+    "Conjuration"   to Color(0xFF9B59B6),
+    "Divination"    to Color(0xFFF1C40F),
+    "Enchantment"   to Color(0xFFE91E63),
+    "Evocation"     to Color(0xFFE74C3C),
+    "Illusion"      to Color(0xFF1ABC9C),
+    "Necromancy"    to Color(0xFF8BC34A),
+    "Transmutation" to Color(0xFFFF9800)
+)
+
+@Composable
+private fun SpellsSection(
+    knownSpells: Set<String>,
+    playerClass: String,
+    onRemove: (String) -> Unit,
+    onBrowse: () -> Unit
+) {
+    val knownByLevel = remember(knownSpells) {
+        DND_SPELLS
+            .filter { it.name in knownSpells }
+            .groupBy { it.level }
+            .toSortedMap()
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (knownSpells.isEmpty()) {
+            Text(
+                "No spells added yet. Tap 'Browse Spells' to add spells from the catalogue.",
+                color    = Color.White.copy(alpha = 0.45f),
+                fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        } else {
+            knownByLevel.forEach { (level, spells) ->
+                Text(
+                    SPELL_LEVEL_LABELS[level] ?: "Level $level",
+                    color      = AccentGold,
+                    fontSize   = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier   = Modifier.padding(top = 4.dp)
+                )
+                spells.forEach { spell ->
+                    KnownSpellRow(spell = spell, onRemove = { onRemove(spell.name) })
+                }
+            }
+        }
+
+        OutlinedButton(
+            onClick  = onBrowse,
+            shape    = RoundedCornerShape(8.dp),
+            border   = androidx.compose.foundation.BorderStroke(1.dp, AccentGold),
+            colors   = ButtonDefaults.outlinedButtonColors(contentColor = AccentGold),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Browse Spell Catalogue", fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun KnownSpellRow(spell: Spell, onRemove: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val schoolColor = SCHOOL_COLORS[spell.school] ?: AccentGold
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // School color tag
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(schoolColor)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(spell.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            if (expanded) {
+                Spacer(Modifier.height(3.dp))
+                Text("${spell.school} · ${spell.castingTime} · ${spell.range}", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                Text("Duration: ${spell.duration}", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                Text("Components: ${spell.components}", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                Spacer(Modifier.height(3.dp))
+                Text(spell.description, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, lineHeight = 16.sp)
+            }
+        }
+        Spacer(Modifier.width(4.dp))
+        Text(spell.school.take(3).uppercase(), color = schoolColor.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.width(6.dp))
+        IconButton(onClick = onRemove, modifier = Modifier.size(28.dp)) {
+            Icon(Icons.Default.Close, contentDescription = "Remove", tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(14.dp))
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Spell Catalogue bottom sheet (shown from SpellsSection)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SpellCatalogueSheet(
+    knownSpells: Set<String>,
+    playerClass: String,
+    onToggle: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var searchQuery   by remember { mutableStateOf("") }
+    var levelFilter   by remember { mutableIntStateOf(-1) }  // -1 = all
+    var classFilter   by remember { mutableStateOf("All") }
+
+    val classes = remember { listOf("All") + DND_SPELLS.flatMap { it.classes }.distinct().sorted() }
+
+    val filtered = remember(searchQuery, levelFilter, classFilter) {
+        DND_SPELLS.filter { spell ->
+            (searchQuery.isBlank() || spell.name.contains(searchQuery, ignoreCase = true)) &&
+            (levelFilter == -1 || spell.level == levelFilter) &&
+            (classFilter == "All" || classFilter in spell.classes)
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest  = onDismiss,
+        sheetState        = sheetState,
+        containerColor    = Color(0xFF1A1528),
+        modifier          = Modifier.fillMaxHeight(0.92f)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Spell Catalogue  ·  ${knownSpells.size} added",
+                    color      = AccentGold,
+                    fontWeight = FontWeight.Bold,
+                    fontSize   = 16.sp,
+                    modifier   = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.6f))
+                }
+            }
+
+            // Search
+            OutlinedTextField(
+                value         = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder   = { Text("Search spells…", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp) },
+                singleLine    = true,
+                modifier      = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                shape         = RoundedCornerShape(8.dp),
+                colors        = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor   = AccentGold,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                    focusedTextColor     = Color.White,
+                    unfocusedTextColor   = Color.White,
+                    cursorColor          = AccentGold,
+                    focusedContainerColor   = Color(0xFF16121F),
+                    unfocusedContainerColor = Color(0xFF16121F)
+                )
+            )
+
+            // Level filter chips
+            val levelChips = listOf(-1 to "All") + (0..9).map { it to (SPELL_LEVEL_LABELS[it] ?: "L$it") }
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                levelChips.forEach { (lvl, label) ->
+                    val active = levelFilter == lvl
+                    FilterChip(
+                        selected = active,
+                        onClick  = { levelFilter = lvl },
+                        label    = { Text(label, fontSize = 11.sp) },
+                        colors   = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = AccentCrimson,
+                            selectedLabelColor     = Color.White,
+                            labelColor             = Color.White.copy(alpha = 0.6f)
+                        ),
+                        border   = FilterChipDefaults.filterChipBorder(
+                            enabled           = true,
+                            selected          = active,
+                            selectedBorderColor = AccentGold,
+                            borderColor       = Color.White.copy(alpha = 0.15f)
+                        )
+                    )
+                }
+            }
+
+            // Class filter chips
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                classes.forEach { cls ->
+                    val active = classFilter == cls
+                    FilterChip(
+                        selected = active,
+                        onClick  = { classFilter = cls },
+                        label    = { Text(cls, fontSize = 11.sp) },
+                        colors   = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = AccentCrimson.copy(alpha = 0.7f),
+                            selectedLabelColor     = Color.White,
+                            labelColor             = Color.White.copy(alpha = 0.6f)
+                        ),
+                        border   = FilterChipDefaults.filterChipBorder(
+                            enabled          = true,
+                            selected         = active,
+                            selectedBorderColor = AccentGold,
+                            borderColor      = Color.White.copy(alpha = 0.15f)
+                        )
+                    )
+                }
+            }
+
+            Text(
+                "${filtered.size} spells",
+                color    = Color.White.copy(alpha = 0.4f),
+                fontSize = 11.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, bottom = 4.dp)
+            )
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            // Spell list
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(filtered, key = { it.name }) { spell ->
+                    CatalogueSpellRow(
+                        spell     = spell,
+                        isKnown   = spell.name in knownSpells,
+                        onToggle  = { onToggle(spell.name) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CatalogueSpellRow(spell: Spell, isKnown: Boolean, onToggle: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val schoolColor = SCHOOL_COLORS[spell.school] ?: AccentGold
+    val levelLabel  = if (spell.level == 0) "Cantrip" else "L${spell.level}"
+
+    Surface(
+        color  = if (isKnown) AccentCrimson.copy(alpha = 0.12f) else Color(0xFF16121F),
+        shape  = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isKnown) AccentGold.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.08f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(schoolColor))
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f).clickable { expanded = !expanded }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(spell.name, color = if (isKnown) AccentGold else Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        Text(levelLabel, color = schoolColor.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(6.dp))
+                        Text(spell.school.take(4), color = Color.White.copy(alpha = 0.35f), fontSize = 10.sp)
+                    }
+                    Text(
+                        "${spell.castingTime}  ·  ${spell.range}",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 11.sp
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        if (isKnown) Icons.Default.Close else Icons.Default.Add,
+                        contentDescription = if (isKnown) "Remove" else "Add",
+                        tint   = if (isKnown) AccentCrimson else AccentGold,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            if (expanded) {
+                Spacer(Modifier.height(6.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                Spacer(Modifier.height(6.dp))
+                Text("Duration: ${spell.duration}  ·  Components: ${spell.components}", color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(spell.description, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, lineHeight = 17.sp)
+                if (spell.classes.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("Classes: ${spell.classes.joinToString(", ")}", color = AccentGold.copy(alpha = 0.5f), fontSize = 11.sp)
+                }
+            }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
