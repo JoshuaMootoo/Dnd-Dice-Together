@@ -46,7 +46,13 @@ sealed class NetworkMessage {
         val playerId: String,
         val formula: String,
         /** DM-only: if true the result is initially hidden from other players. */
-        val hidden: Boolean = false
+        val hidden: Boolean = false,
+        /**
+         * Actual dice values from the physics animation on the rolling device.
+         * When present, the host uses these directly instead of re-rolling, so
+         * the number the player sees in the animation matches what appears in the log.
+         */
+        val results: List<Int>? = null
     ) : NetworkMessage()
 
     @Serializable

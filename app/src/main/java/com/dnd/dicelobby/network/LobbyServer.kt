@@ -1,6 +1,7 @@
 package com.dnd.dicelobby.network
 
 import com.dnd.dicelobby.dice.DiceFormula
+import com.dnd.dicelobby.dice.DiceResult
 import com.dnd.dicelobby.dice.DiceRoller
 import com.dnd.dicelobby.models.Player
 import com.dnd.dicelobby.models.Roll
@@ -92,13 +93,25 @@ class LobbyServer(private val scope: CoroutineScope) {
      * Called by the DM's ViewModel directly (no network round-trip needed for host).
      * Also called internally when a client's [RollRequest] arrives.
      */
-    fun processRoll(playerId: String, formulaStr: String, hidden: Boolean = false) {
+    fun processRoll(
+        playerId: String,
+        formulaStr: String,
+        hidden: Boolean = false,
+        faceValues: List<Int> = emptyList()
+    ) {
         val player = _players.value.find { it.id == playerId } ?: return
         val formula = try { DiceFormula.parse(formulaStr) } catch (e: Exception) {
             _events.tryEmit(ServerEvent.Error("Invalid formula: $formulaStr"))
             return
         }
-        val result  = DiceRoller.roll(formula)
+        // Use the physics face values from the rolling device when available so that
+        // what the player saw in the animation matches the result in the log.
+        val result = if (faceValues.isNotEmpty()) {
+            val total = faceValues.sum() + formula.modifier
+            DiceResult(formula, faceValues, faceValues, formula.modifier, total)
+        } else {
+            DiceRoller.roll(formula)
+        }
         val roll    = Roll(
             id          = UUID.randomUUID().toString(),
             playerId    = playerId,
@@ -175,7 +188,7 @@ class LobbyServer(private val scope: CoroutineScope) {
                     }
 
                     is NetworkMessage.RollRequest -> {
-                        processRoll(msg.playerId, msg.formula, msg.hidden)
+                        processRoll(msg.playerId, msg.formula, msg.hidden, msg.results ?: emptyList())
                     }
 
                     is NetworkMessage.LeaveRequest -> break

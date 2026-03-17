@@ -52,8 +52,8 @@ class DiceViewModel : ViewModel() {
     /** Shared physics world updated each frame by [DiceRenderer]. */
     val physicsWorld = PhysicsWorld()
 
-    /** Callback invoked once the physics settles; delivers formula string + hidden flag. */
-    var onRollReady: ((formula: String, hidden: Boolean) -> Unit)? = null
+    /** Callback invoked once the physics settles; delivers formula string, hidden flag, and face values. */
+    var onRollReady: ((formula: String, hidden: Boolean, faceValues: List<Int>) -> Unit)? = null
 
     private var rollRandom: Random = Random.Default
 
@@ -98,10 +98,10 @@ class DiceViewModel : ViewModel() {
         viewModelScope.launch {
             val formula = buildFormula()
             val hidden  = _hiddenRoll.value
-            onRollReady?.invoke(formula, hidden)
+            onRollReady?.invoke(formula, hidden, faceValues)
 
-            // Keep overlay visible for 1 second so the player can see the result
-            delay(1_000)
+            // Keep overlay visible so the player can read the result
+            delay(2_500)
             _showAnimation.value = false
         }
     }

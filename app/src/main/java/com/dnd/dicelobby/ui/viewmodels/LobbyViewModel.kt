@@ -12,6 +12,7 @@ import com.dnd.dicelobby.network.LobbyServer
 import com.dnd.dicelobby.network.NetworkManager
 import com.dnd.dicelobby.network.ServerEvent
 import com.dnd.dicelobby.repository.RollRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -133,12 +134,15 @@ class LobbyViewModel(application: Application) : AndroidViewModel(application) {
      * On the host device, [LobbyServer.processRoll] is called directly.
      * On client devices, a [RollRequest] message is sent to the host.
      */
-    fun requestRoll(formula: String, hidden: Boolean = false) {
+    fun requestRoll(formula: String, hidden: Boolean = false, faceValues: List<Int> = emptyList()) {
         val pid = _localPlayer.value?.id ?: return
         if (_isHost.value) {
-            server?.processRoll(pid, formula, hidden)
+            // Run on IO to avoid blocking socket writes on the main thread
+            viewModelScope.launch(Dispatchers.IO) {
+                server?.processRoll(pid, formula, hidden, faceValues)
+            }
         } else {
-            client?.requestRoll(formula, hidden)
+            client?.requestRoll(formula, hidden, faceValues)
         }
     }
 

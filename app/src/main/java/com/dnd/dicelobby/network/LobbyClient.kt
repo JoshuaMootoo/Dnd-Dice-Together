@@ -91,9 +91,14 @@ class LobbyClient(private val scope: CoroutineScope) {
     }
 
     /** Request a dice roll from the host. Only the host computes the outcome. */
-    fun requestRoll(formula: String, hidden: Boolean = false) {
+    fun requestRoll(formula: String, hidden: Boolean = false, faceValues: List<Int> = emptyList()) {
         val pid = localPlayer?.id ?: return
-        send(NetworkMessage.RollRequest(playerId = pid, formula = formula, hidden = hidden))
+        send(NetworkMessage.RollRequest(
+            playerId = pid,
+            formula  = formula,
+            hidden   = hidden,
+            results  = faceValues.ifEmpty { null }
+        ))
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

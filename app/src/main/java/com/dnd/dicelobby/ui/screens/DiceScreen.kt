@@ -67,8 +67,8 @@ fun DiceScreen(
     var modifierText      by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        diceViewModel.onRollReady = { formula, hidden ->
-            lobbyViewModel.requestRoll(formula, hidden)
+        diceViewModel.onRollReady = { formula, hidden, faceValues ->
+            lobbyViewModel.requestRoll(formula, hidden, faceValues)
         }
     }
 
