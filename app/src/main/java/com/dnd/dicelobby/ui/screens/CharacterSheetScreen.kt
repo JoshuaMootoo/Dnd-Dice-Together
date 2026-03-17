@@ -695,7 +695,7 @@ fun SpellCatalogueSheet(
             Row(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, bottom = 6.dp),
+                    .padding(start = 12.dp, end = 12.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 classes.forEach { cls ->
@@ -723,7 +723,7 @@ fun SpellCatalogueSheet(
                 "${filtered.size} spells",
                 color    = Color.White.copy(alpha = 0.4f),
                 fontSize = 11.sp,
-                modifier = Modifier.padding(horizontal = 16.dp, bottom = 4.dp)
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
             )
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
