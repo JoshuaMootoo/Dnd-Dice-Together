@@ -59,6 +59,10 @@ fun DiceScreen(
     val diceCount     by diceViewModel.diceCount.collectAsStateWithLifecycle()
     val modifier      by diceViewModel.modifier.collectAsStateWithLifecycle()
     val showAnimation by diceViewModel.showAnimation.collectAsStateWithLifecycle()
+    val rollRevealed  by diceViewModel.rollRevealed.collectAsStateWithLifecycle()
+    val rollResults   by diceViewModel.rollResults.collectAsStateWithLifecycle()
+    val rollModifier  by diceViewModel.rollModifier.collectAsStateWithLifecycle()
+    val rollDiceType  by diceViewModel.rollDiceType.collectAsStateWithLifecycle()
     val hiddenRoll    by diceViewModel.hiddenRoll.collectAsStateWithLifecycle()
     val customFormula by diceViewModel.customFormula.collectAsStateWithLifecycle()
 
@@ -168,10 +172,10 @@ fun DiceScreen(
             // ── Animation overlay ──────────────────────────────────────────
             DiceAnimationOverlay(
                 visible      = showAnimation,
-                physicsWorld = diceViewModel.physicsWorld,
-                diceType     = selectedDice,
-                playerColor  = localPlayer?.color ?: "#C8A84B",
-                onSettled    = diceViewModel::onPhysicsSettled
+                rollResults  = rollResults,
+                rollModifier = rollModifier,
+                revealed     = rollRevealed,
+                diceType     = rollDiceType
             )
         }
     }

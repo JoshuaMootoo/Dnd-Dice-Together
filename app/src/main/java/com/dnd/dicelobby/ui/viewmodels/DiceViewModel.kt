@@ -3,25 +3,25 @@ package com.dnd.dicelobby.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dnd.dicelobby.dice.DiceFormula
+import com.dnd.dicelobby.dice.DiceRoller
 import com.dnd.dicelobby.dice.DiceType
-import com.dnd.dicelobby.physics.PhysicsWorld
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 
 /**
- * Manages the dice-rolling UI state and bridges the physics simulation with the UI.
+ * Manages the dice-rolling UI state.
  *
- * This ViewModel owns the [PhysicsWorld] used by [DiceRenderer] and orchestrates
- * the animation life-cycle:
+ * Animation life-cycle:
  *   1. User picks a die type + optional modifier → taps Roll.
- *   2. [startRoll] resets the world, spawns physics bodies, shows the overlay.
- *   3. [DiceRenderer] calls [onPhysicsSettled] when all dice stop moving.
- *   4. The result is forwarded to [LobbyViewModel.requestRoll] via [onRollReady].
- *   5. After a short display delay, the overlay fades out.
+ *   2. [startRoll] immediately evaluates the roll via [DiceRoller], stores the results,
+ *      and shows the number-reveal overlay.
+ *   3. After a short "rolling" phase the numbers are revealed on screen.
+ *   4. [onRollReady] is invoked with the formula + face values so [LobbyViewModel] can
+ *      broadcast the result to all players.
+ *   5. After a display pause the overlay fades out.
  */
 class DiceViewModel : ViewModel() {
 
@@ -41,21 +41,32 @@ class DiceViewModel : ViewModel() {
     private val _customFormula = MutableStateFlow("")
     val customFormula: StateFlow<String> = _customFormula.asStateFlow()
 
-    /** Whether the 3-D animation overlay is visible. */
+    /** Whether the roll-result overlay is visible. */
     private val _showAnimation = MutableStateFlow(false)
     val showAnimation: StateFlow<Boolean> = _showAnimation.asStateFlow()
+
+    /** Whether the final numbers have been revealed (false = still "rolling"). */
+    private val _rollRevealed = MutableStateFlow(false)
+    val rollRevealed: StateFlow<Boolean> = _rollRevealed.asStateFlow()
+
+    /** Kept dice results for the current roll (empty between rolls). */
+    private val _rollResults = MutableStateFlow<List<Int>>(emptyList())
+    val rollResults: StateFlow<List<Int>> = _rollResults.asStateFlow()
+
+    /** Active modifier value for display (+/- flat bonus). */
+    private val _rollModifier = MutableStateFlow(0)
+    val rollModifier: StateFlow<Int> = _rollModifier.asStateFlow()
+
+    /** Die type used in the current roll (drives the face-count for the rolling animation). */
+    private val _rollDiceType = MutableStateFlow(DiceType.D20)
+    val rollDiceType: StateFlow<DiceType> = _rollDiceType.asStateFlow()
 
     /** Whether this is a hidden (DM-only) roll. */
     private val _hiddenRoll   = MutableStateFlow(false)
     val hiddenRoll: StateFlow<Boolean> = _hiddenRoll.asStateFlow()
 
-    /** Shared physics world updated each frame by [DiceRenderer]. */
-    val physicsWorld = PhysicsWorld()
-
-    /** Callback invoked once the physics settles; delivers formula string, hidden flag, and face values. */
+    /** Callback invoked once results are ready to broadcast. */
     var onRollReady: ((formula: String, hidden: Boolean, faceValues: List<Int>) -> Unit)? = null
-
-    private var rollRandom: Random = Random.Default
 
     fun selectDice(type: DiceType) { _selectedDice.value = type }
     fun setDiceCount(n: Int)       { _diceCount.value = n.coerceIn(1, 20) }
@@ -63,7 +74,6 @@ class DiceViewModel : ViewModel() {
     fun setCustomFormula(f: String){ _customFormula.value = f }
     fun setHiddenRoll(h: Boolean)  { _hiddenRoll.value = h }
 
-    /** Build the formula string from current selections. */
     fun buildFormula(): String {
         if (_customFormula.value.isNotBlank()) return _customFormula.value.trim()
         val base = "${_diceCount.value}${_selectedDice.value.label}"
@@ -76,33 +86,32 @@ class DiceViewModel : ViewModel() {
     }
 
     /**
-     * Begin a new roll animation.
-     * @param count  Number of dice to spawn (capped at 8 for performance).
+     * Immediately evaluate the roll, show the number-reveal overlay, then broadcast
+     * the result after the display delay.
      */
     fun startRoll(count: Int = _diceCount.value) {
-        physicsWorld.clear()
-        val newRandom = Random(System.currentTimeMillis())
-        rollRandom = newRandom
+        val formula = buildFormula()
+        val diceFormula = try {
+            DiceFormula.parse(formula)
+        } catch (e: Exception) {
+            return
+        }
 
-        val cap = count.coerceIn(1, 8)
-        repeat(cap) { physicsWorld.spawnDie(newRandom) }
+        val result = DiceRoller.roll(diceFormula)
 
+        _rollDiceType.value  = diceFormula.type
+        _rollResults.value   = result.keptRolls
+        _rollModifier.value  = result.modifier
+        _rollRevealed.value  = false
         _showAnimation.value = true
-    }
 
-    /**
-     * Called by [DiceRenderer] (on the GL thread) once all dice have settled.
-     * Posts back to the main thread via the ViewModel scope.
-     */
-    fun onPhysicsSettled(faceValues: List<Int>) {
         viewModelScope.launch {
-            val formula = buildFormula()
-            val hidden  = _hiddenRoll.value
-            onRollReady?.invoke(formula, hidden, faceValues)
-
-            // Keep overlay visible so the player can read the result
-            delay(2_500)
+            delay(900)                           // "rolling" phase — numbers spin
+            _rollRevealed.value = true
+            onRollReady?.invoke(formula, _hiddenRoll.value, result.keptRolls)
+            delay(2_200)                         // display phase — numbers stay visible
             _showAnimation.value = false
+            _rollRevealed.value  = false
         }
     }
 }
