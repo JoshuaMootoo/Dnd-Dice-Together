@@ -66,8 +66,9 @@ class LobbyServer(private val scope: CoroutineScope) {
 
         scope.launch(Dispatchers.IO) {
             try {
-                serverSocket = ServerSocket(port).also { ss ->
+                serverSocket = ServerSocket().also { ss ->
                     ss.reuseAddress = true
+                    ss.bind(java.net.InetSocketAddress(port))
                     while (isActive) {
                         val socket = ss.accept()
                         launch { handleClient(socket) }
