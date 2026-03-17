@@ -93,7 +93,7 @@ class LobbyViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        _hostIp.value = NetworkManager.getLocalIpAddress(application)
+        _hostIp.value = NetworkManager.getLocalIpAddress(getApplication())
     }
 
     // ── Client setup ─────────────────────────────────────────────────────────

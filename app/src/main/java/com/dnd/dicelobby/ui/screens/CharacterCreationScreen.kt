@@ -4,13 +4,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -217,7 +217,7 @@ private fun SubraceRow(subrace: Subrace, isSelected: Boolean, onClick: () -> Uni
     OutlinedButton(
         onClick = onClick,
         shape   = RoundedCornerShape(10.dp),
-        colors  = OutlinedButtonDefaults.outlinedButtonColors(
+        colors  = ButtonDefaults.outlinedButtonColors(
             containerColor = if (isSelected) AccentCrimson.copy(alpha = 0.2f) else Color.Transparent,
             contentColor   = if (isSelected) AccentGold else Color.White.copy(alpha = 0.85f)
         ),
@@ -302,26 +302,18 @@ private fun ClassTab(
 @Composable
 private fun ClassDetailCard(cls: CharacterClass) {
     Card(
-        colors   = CardDefaults.cardColors(containerColor = SURFACE_COLOR),
-        shape    = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = SURFACE_COLOR),
+        shape  = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatBadge("Hit Die", cls.hitDie)
-                StatBadge("Primary", cls.primaryAbility)
-                StatBadge("Saves", cls.savingThrows.joinToString("/"))
-            }
-            InfoRow("Armor", cls.armorProficiencies)
-            InfoRow("Weapons", cls.weaponProficiencies)
-            InfoRow("Skills", "Choose ${cls.skillCount}: ${cls.skillChoices.joinToString(", ")}")
-            Text("Key Features", color = AccentGold.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Text(cls.name, color = AccentGold, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            InfoRow("Hit Die", "d${cls.hitDie}")
+            InfoRow("Primary Ability", cls.primaryAbility)
+            InfoRow("Saves", cls.savingThrows.joinToString(", "))
+            Text("Features", color = AccentGold.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             cls.keyFeatures.forEach { f ->
                 Text("• $f", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-            }
-            Text("Starting Equipment", color = AccentGold.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            cls.startingEquipment.forEach { e ->
-                Text("• $e", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
             }
         }
     }
@@ -340,87 +332,34 @@ private fun EquipmentTab(
     onWeaponSelected: (String) -> Unit,
     onGearToggled: (String) -> Unit
 ) {
-    var armorCat   by remember { mutableStateOf(ArmorCategory.LIGHT) }
-    var weaponCat  by remember { mutableStateOf(WeaponCategory.SIMPLE_MELEE) }
-    var gearCat    by remember { mutableStateOf(GearCategory.CONTAINER) }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // ── Armor ──────────────────────────────────────────────
-        item { SectionLabel("Armor") }
-        item {
-            CategoryFilter(
-                options   = ArmorCategory.entries,
-                selected  = armorCat,
-                label     = { it.name.replace("_", " ").lowercase().replaceFirstChar { c -> c.uppercase() } },
-                onSelect  = { armorCat = it }
-            )
-        }
-        items(ALL_ARMOR.filter { it.category == armorCat }) { armor ->
-            EquipmentRow(
-                name       = armor.name,
-                detail     = buildString {
-                    append("AC ${armor.baseAc}")
-                    if (armor.addDex) append(if (armor.maxDex != null) "+DEX (max ${armor.maxDex})" else "+DEX")
-                    if (armor.strRequirement > 0) append(" · STR ${armor.strRequirement}+")
-                    if (armor.stealthDisadv) append(" · Stealth disadv")
-                    append("  ${armor.cost}")
-                },
-                isSelected = armor.name == selectedArmor,
-                onClick    = { onArmorSelected(armor.name) }
-            )
+        item { SectionLabel("Starting Armor") }
+        items(listOf("Leather Armor", "Scale Mail", "Chain Mail")) { armor ->
+            SelectableRow(label = armor, isSelected = armor == selectedArmor, onClick = { onArmorSelected(armor) })
         }
 
-        // ── Weapons ────────────────────────────────────────────
-        item { SectionLabel("Weapons") }
-        item {
-            CategoryFilter(
-                options  = WeaponCategory.entries,
-                selected = weaponCat,
-                label    = { it.name.replace("_", " ").lowercase().split(" ").joinToString(" ") { w -> w.replaceFirstChar { c -> c.uppercase() } } },
-                onSelect = { weaponCat = it }
-            )
-        }
-        items(ALL_WEAPONS.filter { it.category == weaponCat }) { weapon ->
-            EquipmentRow(
-                name       = weapon.name,
-                detail     = buildString {
-                    append("${weapon.damage} ${weapon.damageType}")
-                    if (weapon.range != "—") append(" · ${weapon.range}")
-                    if (weapon.properties.isNotEmpty()) append(" · ${weapon.properties.joinToString(", ")}")
-                    append("  ${weapon.cost}")
-                },
-                isSelected = weapon.name == selectedWeapon,
-                onClick    = { onWeaponSelected(weapon.name) }
-            )
+        item { SectionLabel("Starting Weapon") }
+        items(listOf("Longsword", "Shortbow", "Dagger", "Greataxe")) { weapon ->
+            SelectableRow(label = weapon, isSelected = weapon == selectedWeapon, onClick = { onWeaponSelected(weapon) })
         }
 
-        // ── Adventuring Gear ───────────────────────────────────
         item { SectionLabel("Adventuring Gear") }
-        item {
-            CategoryFilter(
-                options  = GearCategory.entries,
-                selected = gearCat,
-                label    = { it.name.replace("_", " ").lowercase().split(" ").joinToString(" ") { w -> w.replaceFirstChar { c -> c.uppercase() } } },
-                onSelect = { gearCat = it }
-            )
-        }
-        items(ALL_GEAR.filter { it.category == gearCat }) { gear ->
-            GearRow(
-                name       = gear.name,
-                detail     = "${gear.description}  ${gear.cost}",
-                isSelected = selectedGear.contains(gear.name),
-                onToggle   = { onGearToggled(gear.name) }
+        items(listOf("Explorer's Pack", "Burglar's Pack", "Priest's Pack", "Scholar's Pack")) { gear ->
+            SelectableRow(
+                label      = gear,
+                isSelected = gear in selectedGear,
+                onClick    = { onGearToggled(gear) }
             )
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared UI components
+// Shared UI Components
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -428,132 +367,61 @@ private fun SectionLabel(text: String) {
     Text(
         text       = text.uppercase(),
         color      = AccentGold,
-        fontSize   = 11.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.5.sp
+        fontSize   = 12.sp,
+        fontWeight = FontWeight.Black,
+        modifier   = Modifier.padding(top = 8.dp, bottom = 4.dp)
     )
 }
 
 @Composable
+private fun InfoRow(label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("$label: ", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp)
+        Text(value, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
 private fun SelectableChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
+    Surface(
         onClick = onClick,
-        shape   = RoundedCornerShape(10.dp),
-        colors  = OutlinedButtonDefaults.outlinedButtonColors(
-            containerColor = if (isSelected) AccentCrimson.copy(alpha = 0.25f) else Color.Transparent,
-            contentColor   = if (isSelected) AccentGold else Color.White.copy(alpha = 0.8f)
-        ),
-        border  = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) AccentGold else Color.White.copy(alpha = 0.2f)),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-        modifier = Modifier.fillMaxWidth()
+        color   = if (isSelected) AccentGold else SURFACE_COLOR,
+        shape   = RoundedCornerShape(8.dp),
+        border  = BorderStroke(1.dp, if (isSelected) AccentGold else Color.White.copy(alpha = 0.1f)),
+        modifier = Modifier.height(44.dp)
     ) {
-        Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-@Composable
-private fun SelectableRow(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick  = onClick,
-        shape    = RoundedCornerShape(10.dp),
-        colors   = OutlinedButtonDefaults.outlinedButtonColors(
-            containerColor = if (isSelected) AccentCrimson.copy(alpha = 0.2f) else Color.Transparent,
-            contentColor   = if (isSelected) AccentGold else Color.White.copy(alpha = 0.85f)
-        ),
-        border   = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) AccentGold else Color.White.copy(alpha = 0.2f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 14.sp)
-    }
-}
-
-@Composable
-private fun EquipmentRow(name: String, detail: String, isSelected: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick  = onClick,
-        shape    = RoundedCornerShape(10.dp),
-        colors   = OutlinedButtonDefaults.outlinedButtonColors(
-            containerColor = if (isSelected) AccentCrimson.copy(alpha = 0.2f) else Color.Transparent,
-            contentColor   = if (isSelected) AccentGold else Color.White.copy(alpha = 0.85f)
-        ),
-        border   = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) AccentGold else Color.White.copy(alpha = 0.15f)),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-            Text(name, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp)
-            Text(detail, color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-private fun GearRow(name: String, detail: String, isSelected: Boolean, onToggle: () -> Unit) {
-    OutlinedButton(
-        onClick  = onToggle,
-        shape    = RoundedCornerShape(10.dp),
-        colors   = OutlinedButtonDefaults.outlinedButtonColors(
-            containerColor = if (isSelected) AccentCrimson.copy(alpha = 0.2f) else Color.Transparent,
-            contentColor   = if (isSelected) AccentGold else Color.White.copy(alpha = 0.85f)
-        ),
-        border   = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) AccentGold else Color.White.copy(alpha = 0.15f)),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
-                Text(name, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp)
-                Text(detail, color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-            if (isSelected) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AccentGold, modifier = Modifier.size(18.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun <T> CategoryFilter(options: Iterable<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(options.toList()) { opt ->
-            val isSel = opt == selected
-            FilterChip(
-                selected = isSel,
-                onClick  = { onSelect(opt) },
-                label    = { Text(label(opt), fontSize = 11.sp) },
-                colors   = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AccentCrimson.copy(alpha = 0.25f),
-                    selectedLabelColor     = AccentGold,
-                    containerColor         = Color.Transparent,
-                    labelColor             = Color.White.copy(alpha = 0.6f)
-                ),
-                border   = FilterChipDefaults.filterChipBorder(
-                    enabled          = true,
-                    selected         = isSel,
-                    selectedBorderColor = AccentGold,
-                    borderColor      = Color.White.copy(alpha = 0.2f)
-                )
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
+            Text(
+                text     = label,
+                color    = if (isSelected) Color.Black else Color.White,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                textAlign  = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
             )
         }
     }
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("$label:", color = AccentGold.copy(alpha = 0.7f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        Text(value, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-    }
-}
-
-@Composable
-private fun StatBadge(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, color = AccentGold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Text(label, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+private fun SelectableRow(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color   = if (isSelected) Color.White.copy(alpha = 0.05f) else Color.Transparent,
+        shape   = RoundedCornerShape(8.dp),
+        border  = BorderStroke(1.dp, if (isSelected) AccentGold.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.1f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp, 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(label, color = if (isSelected) AccentGold else Color.White, fontSize = 14.sp)
+            if (isSelected) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AccentGold, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }

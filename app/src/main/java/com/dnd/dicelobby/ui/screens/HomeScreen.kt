@@ -204,7 +204,7 @@ fun HomeScreen(
                 OutlinedButton(
                     onClick = onChooseRace,
                     shape   = RoundedCornerShape(4.dp),
-                    colors  = OutlinedButtonDefaults.outlinedButtonColors(contentColor = BG3Gold),
+                    colors  = ButtonDefaults.outlinedButtonColors(contentColor = BG3Gold),
                     border  = androidx.compose.foundation.BorderStroke(1.dp, BG3GoldBorder)
                 ) {
                     Text(
@@ -255,7 +255,7 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape  = RoundedCornerShape(4.dp),
-                colors = OutlinedButtonDefaults.outlinedButtonColors(
+                colors = ButtonDefaults.outlinedButtonColors(
                     contentColor         = BG3Gold,
                     disabledContentColor = BG3GoldBorder.copy(alpha = 0.4f)
                 ),

@@ -456,8 +456,7 @@ private fun AbilityScoreCard(
                     focusedTextColor        = Color.White,
                     unfocusedTextColor      = Color.White,
                     cursorColor             = AccentCrimson
-                ),
-                contentPadding  = PaddingValues(0.dp)
+                )
             )
         }
     }

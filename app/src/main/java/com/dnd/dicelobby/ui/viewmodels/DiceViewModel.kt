@@ -55,7 +55,7 @@ class DiceViewModel : ViewModel() {
     /** Callback invoked once the physics settles; delivers formula string + hidden flag. */
     var onRollReady: ((formula: String, hidden: Boolean) -> Unit)? = null
 
-    private var rollRandom = Random.Default
+    private var rollRandom: Random = Random.Default
 
     fun selectDice(type: DiceType) { _selectedDice.value = type }
     fun setDiceCount(n: Int)       { _diceCount.value = n.coerceIn(1, 20) }
@@ -81,10 +81,11 @@ class DiceViewModel : ViewModel() {
      */
     fun startRoll(count: Int = _diceCount.value) {
         physicsWorld.clear()
-        rollRandom = Random(System.currentTimeMillis())
+        val newRandom = Random(System.currentTimeMillis())
+        rollRandom = newRandom
 
         val cap = count.coerceIn(1, 8)
-        repeat(cap) { physicsWorld.spawnDie(rollRandom) }
+        repeat(cap) { physicsWorld.spawnDie(newRandom) }
 
         _showAnimation.value = true
     }
